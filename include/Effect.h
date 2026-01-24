@@ -3,18 +3,18 @@
 #include <FastLED.h>
 #include <Preferences.h>
 
-enum EffectDirection {
+enum class EffectDirection {
 	OFF = -1,
 	ON = 1,
 };
 
-enum EffectType {
+enum class EffectType {
 	NONE,
 	LIGHTSABER,
 	FADE
 };
 
-enum EffectParameter {
+enum class EffectParameter {
 	DURATION,
 	START_LED_INDEX
 };
@@ -74,7 +74,7 @@ class StaticEffect : public Effect {
 class LightsaberEffect : public Effect {
   public:
 	LightsaberEffect(uint32_t duration, uint16_t startLedIndex)
-		: Effect(EffectType::LIGHTSABER, duration), startLedIndex(startLedIndex) {}
+		: Effect(EffectType::LIGHTSABER, duration), startLedIndex(startLedIndex), currentStartLedIndex(startLedIndex) {}
 
 	uint16_t getStartLedIndex() const { return this->startLedIndex; }
 	void setStartLedIndex(uint16_t startLedIndex);
@@ -89,5 +89,6 @@ class LightsaberEffect : public Effect {
   private:
 	uint16_t getLongerSectionLength(uint16_t numLeds);
 
+	uint16_t currentStartLedIndex;
 	uint16_t startLedIndex;
 };

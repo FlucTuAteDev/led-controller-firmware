@@ -4,7 +4,7 @@
 #include <AsyncWebSocket.h>
 #include <ESPAsyncWebServer.h>
 
-enum RequestType {
+enum class RequestType {
 	GET,
 	SET
 };

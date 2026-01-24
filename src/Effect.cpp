@@ -1,4 +1,5 @@
 #include "Effect.h"
+#include "Constants.h"
 #include <FastLED.h>
 
 #define DEFAULT_EFFECT_DURATION 3000
@@ -50,7 +51,7 @@ void Effect::save(Preferences &prefs, const char *key) {
 }
 
 String Effect::getPreferenceKey(EffectParameter parameter, const char *key) {
-	return String(this->type) + "_" + key + "_" + parameter;
+	return String(int(this->type)) + "_" + key + "_" + int(parameter);
 }
 
 bool Effect::update(CRGB *leds, uint16_t numLeds, const CRGB &onColor) {
@@ -64,7 +65,7 @@ bool Effect::update(CRGB *leds, uint16_t numLeds, const CRGB &onColor) {
 	if (this->duration > 0.0f) {
 		float speed = 1.0f / this->duration;
 
-		this->progress += this->direction * speed * dt;
+		this->progress += int(this->direction) * speed * dt;
 	} else {
 		this->progress = this->direction == EffectDirection::ON ? 1.0f : 0.0f;
 	}
@@ -90,7 +91,8 @@ void StaticEffect::animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, fl
 }
 
 void LightsaberEffect::setStartLedIndex(uint16_t startLedIndex) {
-	this->startLedIndex = startLedIndex;
+	const auto index = std::clamp((int)startLedIndex, 0, LED_ARRAY_COUNT - 1);
+	this->startLedIndex = index;
 }
 
 bool LightsaberEffect::setParameter(const EffectParameter parameter, const String &value) {

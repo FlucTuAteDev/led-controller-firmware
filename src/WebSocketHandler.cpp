@@ -16,8 +16,6 @@ WebSocketHandler::WebSocketHandler(LEDController &ledController)
 	wsHandler.onMessage([this](AsyncWebSocket *server, AsyncWebSocketClient *client, const uint8_t *data, size_t len) {
 		String msg((char *)data);
 		this->handleMessage(client, msg);
-
-		server->textAll(data, len);
 	});
 
 	wsHandler.onDisconnect([this](AsyncWebSocket *server, uint32_t clientId) {
@@ -43,24 +41,25 @@ void WebSocketHandler::handleMessage(AsyncWebSocketClient *client, const String 
 	const LEDControllerParameter parameter = (LEDControllerParameter)message.substring(0, parameterSeparator).toInt();
 
 	if (parameter == LEDControllerParameter::ON_EFFECT || parameter == LEDControllerParameter::OFF_EFFECT) {
+		const auto effectTypeSeparator = message.indexOf(' ', parameterSeparator + 1);
+		const auto effectType = (EffectType)message.substring(parameterSeparator + 1, effectTypeSeparator).toInt();
+
+		if (parameter == LEDControllerParameter::ON_EFFECT) {
+			const auto effect = EffectFactory::getFromEffectTypeOn(effectType);
+			this->ledController.setOnEffect(effect);
+		} else {
+			const auto effect = EffectFactory::getFromEffectTypeOff(effectType);
+			this->ledController.setOffEffect(effect);
+		}
+	} else if (parameter == LEDControllerParameter::ON_EFFECT_PARAMETER || parameter == LEDControllerParameter::OFF_EFFECT_PARAMETER) {
 		const auto effectParameterSeparator = message.indexOf(' ', parameterSeparator + 1);
 		const int effectParameter = message.substring(parameterSeparator + 1, effectParameterSeparator).toInt();
 		const auto effectParameterValue = message.substring(effectParameterSeparator + 1);
 
-		if (effectParameter == EFFECT_TYPE_PARAMETER) {
-			if (parameter == LEDControllerParameter::ON_EFFECT) {
-				const auto effect = EffectFactory::getFromEffectTypeOn((EffectType)effectParameterValue.toInt());
-				this->ledController.setOnEffect(effect);
-			} else {
-				const auto effect = EffectFactory::getFromEffectTypeOff((EffectType)effectParameterValue.toInt());
-				this->ledController.setOffEffect(effect);
-			}
+		if (parameter == LEDControllerParameter::ON_EFFECT_PARAMETER) {
+			this->ledController.setOnEffectParameter((EffectParameter)effectParameter, effectParameterValue);
 		} else {
-			if (parameter == LEDControllerParameter::ON_EFFECT) {
-				this->ledController.getOnEffect()->setParameter((EffectParameter)effectParameter, effectParameterValue);
-			} else {
-				this->ledController.getOffEffect()->setParameter((EffectParameter)effectParameter, effectParameterValue);
-			}
+			this->ledController.setOffEffectParameter((EffectParameter)effectParameter, effectParameterValue);
 		}
 	} else {
 		const auto parameterValue = message.substring(parameterSeparator + 1);
@@ -68,10 +67,10 @@ void WebSocketHandler::handleMessage(AsyncWebSocketClient *client, const String 
 		if (parameter == LEDControllerParameter::BRIGHTNESS) {
 			// Brightness has to be at least 1
 			const auto brightness = std::clamp((int)parameterValue.toInt(), 1, 255);
-			this->ledController.setTargetBrightness(brightness);
+			this->ledController.setBrightness(brightness);
 		} else if (parameter == LEDControllerParameter::COLOR_TEMPERATURE) {
-			const auto coldLEDBrightness = std::clamp((int)parameterValue.toInt(), 0, 255);
-			this->ledController.setTargetColdBrightness(coldLEDBrightness);
+			const auto coldBrightness = std::clamp((int)parameterValue.toInt(), 0, 255);
+			this->ledController.setColdBrightness(coldBrightness);
 		}
 	}
 }

@@ -1,7 +1,9 @@
 #pragma once
+#include "Constants.h"
 #include "DigitalInput.h"
 #include "DigitalOutput.h"
 #include "Effect.h"
+#include "Previewer.h"
 #include <FastLED.h>
 #include <optional>
 
@@ -12,12 +14,6 @@
 
 #define SWITCH_INPUT_PIN 19
 
-// TODO: Ezeket definiálni
-#define LONG_STRIP_SECTION_COUNT 80
-#define SHORT_STRIP_SECTION_COUNT 30
-#define STRIP_GAP_SECTION_COUNT 11
-
-#define LED_ARRAY_COUNT (LONG_STRIP_SECTION_COUNT + SHORT_STRIP_SECTION_COUNT + STRIP_GAP_SECTION_COUNT)
 /*
 	From the datasheet sending 1 bit in the worst case takes 2us. Each LED controller (WS2811) takes 24 bits of data
 	(8 bits for red, green and blue each) + there is a minimum of 280us of reset time after the bits have been.
@@ -32,19 +28,19 @@
 
 #define DEFAULT_BRIGHTNESS 20
 #define DEFAULT_COLOR_TEMPERATURE 127
-#define BRIGHNESS_STEP_INTERVAL_MS 10
-#define COLOR_TEMPERATURE_STEP_INTERVAL_MS 10
 
-enum LEDControllerMode {
+enum class LEDControllerMode {
 	SWITCH,
 	SETTING
 };
 
-enum LEDControllerParameter {
+enum class LEDControllerParameter {
 	BRIGHTNESS,
 	COLOR_TEMPERATURE,
 	ON_EFFECT,
-	OFF_EFFECT
+	OFF_EFFECT,
+	ON_EFFECT_PARAMETER,
+	OFF_EFFECT_PARAMETER,
 };
 
 class LEDController {
@@ -54,17 +50,11 @@ class LEDController {
 	void begin();
 	void update();
 
-	uint8_t getBrightness() const { return FastLED.getBrightness(); }
+	uint8_t getBrightness() const { return this->brightness; }
 	void setBrightness(uint8_t brightness);
-
-	uint8_t getTargetBrigtness() const { return this->targetBrightness; }
-	void setTargetBrightness(uint8_t brightness);
 
 	uint8_t getColdBrightness() const { return this->onColor.r; }
 	void setColdBrightness(uint8_t brightness);
-
-	uint8_t getTargetColdBrightness() const { return this->targetColdBrightness; }
-	void setTargetColdBrightness(uint8_t brightness);
 
 	LEDControllerMode getMode() { return this->mode; }
 	void setMode(LEDControllerMode mode);
@@ -72,10 +62,14 @@ class LEDController {
 	void setOnEffect(Effect *effect);
 	void setOffEffect(Effect *effect);
 
+	void setOnEffectParameter(EffectParameter parameter, const String &value);
+	void setOffEffectParameter(EffectParameter parameter, const String &value);
+
 	Effect *getOnEffect() { return this->onEffect; }
 	Effect *getOffEffect() { return this->offEffect; }
 
   private:
+	void previewEffectParameter(EffectParameter parameter, const String &value);
 	void reverseShortStripSection();
 
 	void load();
@@ -84,29 +78,21 @@ class LEDController {
 	void updateSwitchMode();
 	void updateSettingMode();
 
-	bool updateBrightness();
-	bool updateColorTemperature();
-
 	void exitMode(LEDControllerMode mode);
 	void enterMode(LEDControllerMode mode);
 
 	void onSwitchModeEntered();
 	void onSettingModeEntered();
 
-	void setPreviewEffect(Effect *effect, EffectDirection direction);
-
-	void turnOnAllLEDs();
 	void clearLEDs();
 
 	CRGB leds[LED_ARRAY_COUNT];
 
 	LEDControllerMode mode = LEDControllerMode::SWITCH;
 
-	bool firstBrightnessUpdate = true;
-	uint8_t targetBrightness;
-	uint8_t targetColdBrightness;
-	uint32_t lastBrightnessStepTime = 0;
-	uint32_t lastColorTemperatureStepTime = 0;
+	Previewer previewer;
+
+	uint8_t brightness = DEFAULT_BRIGHTNESS;
 	CRGB onColor = CRGB::Yellow;
 
 	Effect *onEffect;
