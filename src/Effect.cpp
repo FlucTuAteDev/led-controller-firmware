@@ -47,7 +47,7 @@ void Effect::load(Preferences &prefs, const char *key) {
 void Effect::save(Preferences &prefs, const char *key) {
 	const auto durationKey = this->getPreferenceKey(EffectParameter::DURATION, key).c_str();
 	const auto durationValue = this->getDuration();
-	prefs.putUShort(durationKey, durationValue);
+	prefs.putUInt(durationKey, durationValue);
 }
 
 String Effect::getPreferenceKey(EffectParameter parameter, const char *key) {
@@ -84,10 +84,8 @@ bool Effect::update(CRGB *leds, uint16_t numLeds, const CRGB &onColor) {
 }
 
 void StaticEffect::animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) {
-	const CRGB color = onColor * progress;
-	for (uint16_t i = 0; i < numLeds; i++) {
-		leds[i] = color;
-	}
+	const CRGB color = progress > 0.5 ? onColor : CRGB::Black;
+	fill_solid(leds, numLeds, color);
 }
 
 void LightsaberEffect::setStartLedIndex(uint16_t startLedIndex) {
@@ -110,7 +108,7 @@ void LightsaberEffect::load(Preferences &prefs, const char *key) {
 	Effect::load(prefs, key);
 
 	const auto startLedIndexKey = this->getPreferenceKey(EffectParameter::START_LED_INDEX, key).c_str();
-	const auto startLedIndexValue = prefs.getUInt(startLedIndexKey, 0);
+	const auto startLedIndexValue = prefs.getUShort(startLedIndexKey, 0);
 	this->setStartLedIndex(startLedIndexValue);
 }
 
@@ -155,5 +153,13 @@ void LightsaberEffect::animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor
 		if (leftIndex >= 0) {
 			leds[leftIndex] = CRGB::Black;
 		}
+	}
+}
+
+void FadeEffect::animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) {
+	const auto newColor = onColor.scale8(progress * 255);
+
+	for (uint16_t i = 0; i < numLeds; i++) {
+		leds[i] = newColor;
 	}
 }

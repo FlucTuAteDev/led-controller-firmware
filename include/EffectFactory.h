@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Effect.h"
 
 class EffectFactory {
@@ -10,4 +12,7 @@ class EffectFactory {
 
 	static LightsaberEffect lightsaberOn;
 	static LightsaberEffect lightsaberOff;
+
+	static FadeEffect fadeOn;
+	static FadeEffect fadeOff;
 };

@@ -3,6 +3,8 @@
 #include "DigitalInput.h"
 #include "DigitalOutput.h"
 #include "Effect.h"
+#include "EffectFactory.h"
+#include "LedConfig.h"
 #include "Previewer.h"
 #include <FastLED.h>
 #include <optional>
@@ -26,8 +28,7 @@
 #define ON_EFFECT_PREFERENCE_KEY "on"
 #define OFF_EFFECT_PREFERENCE_KEY "off"
 
-#define DEFAULT_BRIGHTNESS 20
-#define DEFAULT_COLOR_TEMPERATURE 127
+#define DEFAULT_COLOR 0x7F7F00
 
 enum class LEDControllerMode {
 	SWITCH,
@@ -35,8 +36,7 @@ enum class LEDControllerMode {
 };
 
 enum class LEDControllerParameter {
-	BRIGHTNESS,
-	COLOR_TEMPERATURE,
+	COLOR,
 	ON_EFFECT,
 	OFF_EFFECT,
 	ON_EFFECT_PARAMETER,
@@ -45,19 +45,17 @@ enum class LEDControllerParameter {
 
 class LEDController {
   public:
-	LEDController();
-
 	void begin();
 	void update();
 
-	uint8_t getBrightness() const { return this->brightness; }
-	void setBrightness(uint8_t brightness);
+	const CRGB &getColor() const { return this->config.color; }
+	void setColor(const CRGB &color);
 
-	uint8_t getColdBrightness() const { return this->onColor.r; }
-	void setColdBrightness(uint8_t brightness);
-
-	LEDControllerMode getMode() { return this->mode; }
+	LEDControllerMode getMode() const { return this->mode; }
 	void setMode(LEDControllerMode mode);
+
+	const Effect *const getOnEffect() const { return this->config.onEffect; }
+	const Effect *const getOffEffect() const { return this->config.offEffect; }
 
 	void setOnEffect(Effect *effect);
 	void setOffEffect(Effect *effect);
@@ -65,15 +63,18 @@ class LEDController {
 	void setOnEffectParameter(EffectParameter parameter, const String &value);
 	void setOffEffectParameter(EffectParameter parameter, const String &value);
 
-	Effect *getOnEffect() { return this->onEffect; }
-	Effect *getOffEffect() { return this->offEffect; }
+	void previewOnEffect();
+	void previewOffEffect();
+
+	void save();
 
   private:
+	LEDConfig &getConfig();
+
 	void previewEffectParameter(EffectParameter parameter, const String &value);
 	void reverseShortStripSection();
 
 	void load();
-	void save();
 
 	void updateSwitchMode();
 	void updateSettingMode();
@@ -84,21 +85,21 @@ class LEDController {
 	void onSwitchModeEntered();
 	void onSettingModeEntered();
 
-	void clearLEDs();
-
 	CRGB leds[LED_ARRAY_COUNT];
 
 	LEDControllerMode mode = LEDControllerMode::SWITCH;
 
 	Previewer previewer;
 
-	uint8_t brightness = DEFAULT_BRIGHTNESS;
-	CRGB onColor = CRGB::Yellow;
+	LEDConfig config = {
+		.color = CRGB(255, 0, 0),
+		.onEffect = &EffectFactory::lightsaberOn,
+		.offEffect = &EffectFactory::lightsaberOff,
+	};
 
-	Effect *onEffect;
-	Effect *offEffect;
-	Effect *currentEffect;
-	Effect *previewEffect = nullptr;
+	LEDConfig draft = config;
+
+	Effect *currentEffect = this->config.onEffect;
 
 	DigitalInput switchInput = DigitalInput(SWITCH_INPUT_PIN, LOW);
 	DigitalOutput powerSupply = DigitalOutput(POWER_SUPPLY_PIN);

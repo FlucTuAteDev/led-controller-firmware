@@ -68,7 +68,7 @@ class StaticEffect : public Effect {
 	void save(Preferences &prefs, const char *key) {}
 
   protected:
-	virtual void animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) override;
+	void animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) override;
 };
 
 class LightsaberEffect : public Effect {
@@ -84,11 +84,20 @@ class LightsaberEffect : public Effect {
 	void save(Preferences &prefs, const char *key) override;
 
   protected:
-	virtual void animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) override;
+	void animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) override;
 
   private:
 	uint16_t getLongerSectionLength(uint16_t numLeds);
 
 	uint16_t currentStartLedIndex;
 	uint16_t startLedIndex;
+};
+
+class FadeEffect : public Effect {
+  public:
+	FadeEffect(uint32_t duration)
+		: Effect(EffectType::FADE, duration) {}
+
+  protected:
+	void animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) override;
 };

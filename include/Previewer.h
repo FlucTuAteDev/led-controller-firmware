@@ -7,40 +7,38 @@
 #define UPDATE_INTERVAL 10
 
 enum class PreviewMode {
-	BRIGHTNESS,
-	COLOR_TEMPERATURE,
+	COLOR,
 	INDEX,
 	EFFECT,
 };
 
 class Previewer {
   public:
-	void previewBrightness(uint8_t brightness);
-	void previewColorTemperature(uint8_t coldBrightness);
+	void previewColor(const CRGB &color);
 	void previewIndex(uint16_t index);
 	void previewEffect(Effect *effect, EffectDirection direction);
+
+	void setColor(const CRGB &color) {
+		this->targetColor = color;
+		this->currentColor = color;
+	}
 
 	bool update(CRGB *leds, uint16_t numLeds);
 
   private:
-	bool updateBrightness(CRGB *leds, uint16_t numLeds);
-	bool updateColorTemperature(CRGB *leds, uint16_t numLeds);
+	bool updateColor(CRGB *leds, uint16_t numLeds);
 	bool updateIndex(CRGB *leds, uint16_t numLeds);
 	bool updateEffect(CRGB *leds, uint16_t numLeds);
 
 	template <typename T>
 	T updateTowardsTarget(T currentValue, T targetValue, uint32_t &lastUpdateTime, uint32_t updateInterval = UPDATE_INTERVAL);
 
-	PreviewMode mode = PreviewMode::BRIGHTNESS;
+	PreviewMode mode = PreviewMode::COLOR;
 
-	uint8_t currentBrightness = 1;
-	uint8_t targetBrightness = 1;
-	uint32_t lastBrightnessUpdateTime = 0;
-
-	uint8_t currentColdBrightness = 0;
-	uint8_t targetColdBrightness = 0;
-	uint32_t lastColdBrightnessUpdateTime = 0;
-	CRGB color = CRGB(this->currentColdBrightness, 255 - this->currentColdBrightness, 0);
+	CRGB targetColor;
+	CRGB currentColor;
+	uint32_t lastRColorUpdateTime = 0;
+	uint32_t lastGColorUpdateTime = 0;
 
 	uint16_t currentIndex = 0;
 	uint16_t targetIndex = 0;

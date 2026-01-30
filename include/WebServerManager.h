@@ -10,6 +10,8 @@ class WebServerManager {
 	void loop();
 
   private:
+	String getState() const;
+
 	AsyncWebServer server;
 	WebSocketHandler wsHandler;
 	LEDController &ledController;

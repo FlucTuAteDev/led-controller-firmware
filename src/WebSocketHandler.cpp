@@ -2,8 +2,6 @@
 #include "EffectFactory.h"
 #include <algorithm>
 
-#define EFFECT_TYPE_PARAMETER -1
-
 WebSocketHandler::WebSocketHandler(LEDController &ledController)
 	: ledController(ledController), wsHandler(), ws("/ws", wsHandler.eventHandler()) {
 	wsHandler.onConnect([this](AsyncWebSocket *server, AsyncWebSocketClient *client) {
@@ -37,40 +35,39 @@ void WebSocketHandler::loop() {
 }
 
 void WebSocketHandler::handleMessage(AsyncWebSocketClient *client, const String &message) {
-	const auto parameterSeparator = message.indexOf(' ');
-	const LEDControllerParameter parameter = (LEDControllerParameter)message.substring(0, parameterSeparator).toInt();
+	const auto commandSeparator = message.indexOf(' ');
+	const Command command = static_cast<Command>(message.substring(0, commandSeparator).toInt());
 
-	if (parameter == LEDControllerParameter::ON_EFFECT || parameter == LEDControllerParameter::OFF_EFFECT) {
-		const auto effectTypeSeparator = message.indexOf(' ', parameterSeparator + 1);
-		const auto effectType = (EffectType)message.substring(parameterSeparator + 1, effectTypeSeparator).toInt();
+	if (command == Command::SET_ON_EFFECT || command == Command::SET_OFF_EFFECT) {
+		const auto effectTypeSeparator = message.indexOf(' ', commandSeparator + 1);
+		const auto effectType = static_cast<EffectType>(message.substring(commandSeparator + 1, effectTypeSeparator).toInt());
 
-		if (parameter == LEDControllerParameter::ON_EFFECT) {
+		if (command == Command::SET_ON_EFFECT) {
 			const auto effect = EffectFactory::getFromEffectTypeOn(effectType);
 			this->ledController.setOnEffect(effect);
 		} else {
 			const auto effect = EffectFactory::getFromEffectTypeOff(effectType);
 			this->ledController.setOffEffect(effect);
 		}
-	} else if (parameter == LEDControllerParameter::ON_EFFECT_PARAMETER || parameter == LEDControllerParameter::OFF_EFFECT_PARAMETER) {
-		const auto effectParameterSeparator = message.indexOf(' ', parameterSeparator + 1);
-		const int effectParameter = message.substring(parameterSeparator + 1, effectParameterSeparator).toInt();
+	} else if (command == Command::SET_ON_EFFECT_PARAMETER || command == Command::SET_OFF_EFFECT_PARAMETER) {
+		const auto effectParameterSeparator = message.indexOf(' ', commandSeparator + 1);
+		const auto effectParameter = static_cast<EffectParameter>(message.substring(commandSeparator + 1, effectParameterSeparator).toInt());
 		const auto effectParameterValue = message.substring(effectParameterSeparator + 1);
 
-		if (parameter == LEDControllerParameter::ON_EFFECT_PARAMETER) {
-			this->ledController.setOnEffectParameter((EffectParameter)effectParameter, effectParameterValue);
+		if (command == Command::SET_ON_EFFECT_PARAMETER) {
+			this->ledController.setOnEffectParameter(effectParameter, effectParameterValue);
 		} else {
-			this->ledController.setOffEffectParameter((EffectParameter)effectParameter, effectParameterValue);
+			this->ledController.setOffEffectParameter(effectParameter, effectParameterValue);
 		}
-	} else {
-		const auto parameterValue = message.substring(parameterSeparator + 1);
+	} else if (command == Command::SET_COLOR) {
+		const auto colorValue = message.substring(commandSeparator + 1).toInt();
 
-		if (parameter == LEDControllerParameter::BRIGHTNESS) {
-			// Brightness has to be at least 1
-			const auto brightness = std::clamp((int)parameterValue.toInt(), 1, 255);
-			this->ledController.setBrightness(brightness);
-		} else if (parameter == LEDControllerParameter::COLOR_TEMPERATURE) {
-			const auto coldBrightness = std::clamp((int)parameterValue.toInt(), 0, 255);
-			this->ledController.setColdBrightness(coldBrightness);
-		}
+		this->ledController.setColor(colorValue);
+	} else if (command == Command::PREVIEW_ON_EFFECT) {
+		this->ledController.previewOnEffect();
+	} else if (command == Command::PREVIEW_OFF_EFFECT) {
+		this->ledController.previewOffEffect();
+	} else if (command == Command::SAVE) {
+		this->ledController.save();
 	}
 }

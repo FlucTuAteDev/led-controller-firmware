@@ -1,9 +1,5 @@
 #include "LEDController.h"
-#include "EffectFactory.h"
 #include "utils.h"
-
-LEDController::LEDController()
-	: onEffect(&EffectFactory::lightsaberOn), offEffect(&EffectFactory::lightsaberOff), currentEffect(onEffect) {}
 
 void LEDController::begin() {
 	this->switchInput.begin(INPUT_PULLUP);
@@ -47,14 +43,14 @@ void LEDController::updateSwitchMode() {
 
 		if (this->switchInput.isOn()) {
 			if (!this->currentEffect->isRunning()) {
-				this->currentEffect = this->onEffect;
+				this->currentEffect = this->config.onEffect;
 				this->currentEffect->reset(EffectDirection::ON);
 			}
 
 			this->currentEffect->start(EffectDirection::ON);
 		} else {
 			if (!this->currentEffect->isRunning()) {
-				this->currentEffect = this->offEffect;
+				this->currentEffect = this->config.offEffect;
 				this->currentEffect->reset(EffectDirection::OFF);
 			}
 
@@ -62,7 +58,7 @@ void LEDController::updateSwitchMode() {
 		}
 	}
 
-	auto updated = this->currentEffect->update(this->leds, LED_ARRAY_COUNT, this->onColor);
+	auto updated = this->currentEffect->update(this->leds, LED_ARRAY_COUNT, this->config.color);
 
 	if (updated) {
 		FastLED.show();
@@ -86,14 +82,7 @@ void LEDController::setMode(LEDControllerMode mode) {
 }
 
 void LEDController::exitMode(LEDControllerMode mode) {
-	switch (mode) {
-	case LEDControllerMode::SETTING:
-		// TODO: test
-		// this->save();
-		break;
-	}
-
-	this->clearLEDs();
+	fill_solid(this->leds, LED_ARRAY_COUNT, CRGB::Black);
 }
 
 void LEDController::enterMode(LEDControllerMode mode) {
@@ -109,13 +98,13 @@ void LEDController::enterMode(LEDControllerMode mode) {
 
 void LEDController::onSwitchModeEntered() {
 	if (this->switchInput.isOff()) {
-		this->clearLEDs();
+		fill_solid(this->leds, LED_ARRAY_COUNT, CRGB::Black);
 		this->powerSupply.off();
 		return;
 	}
 
 	this->powerSupply.on();
-	this->currentEffect = this->onEffect;
+	this->currentEffect = this->config.onEffect;
 	this->currentEffect->reset(EffectDirection::ON);
 	this->currentEffect->start(EffectDirection::ON);
 }
@@ -128,7 +117,7 @@ void LEDController::onSettingModeEntered() {
 
 	// Blink the first led to signal entering into setting modeí
 	for (size_t i = 0; i < 2; i++) {
-		this->leds[0] = this->onColor;
+		this->leds[0] = this->config.color;
 		FastLED.show();
 		delay(SETTING_MODE_BLINK_DELAY);
 		this->leds[0] = CRGB::Black;
@@ -140,10 +129,8 @@ void LEDController::onSettingModeEntered() {
 void LEDController::load() {
 	this->preferences.begin(LED_PREFERENCES_NAMESPACE, true);
 
-	auto brightness = this->preferences.getUChar(String(uint8_t(LEDControllerParameter::BRIGHTNESS)).c_str(), DEFAULT_BRIGHTNESS);
-	this->setBrightness(brightness);
-	auto coldBrightness = this->preferences.getUChar(String(uint8_t(LEDControllerParameter::COLOR_TEMPERATURE)).c_str(), DEFAULT_COLOR_TEMPERATURE);
-	this->setColdBrightness(coldBrightness);
+	CRGB color = this->preferences.getUInt(String(uint8_t(LEDControllerParameter::COLOR)).c_str(), DEFAULT_COLOR);
+	this->setColor(color);
 
 	const auto onEffectType = (EffectType)this->preferences.getUChar(String(uint8_t(LEDControllerParameter::ON_EFFECT)).c_str(), uint8_t(EffectType::LIGHTSABER));
 	const auto offEffectType = (EffectType)this->preferences.getUChar(String(uint8_t(LEDControllerParameter::OFF_EFFECT)).c_str(), uint8_t(EffectType::LIGHTSABER));
@@ -163,68 +150,70 @@ void LEDController::load() {
 void LEDController::save() {
 	this->preferences.begin(LED_PREFERENCES_NAMESPACE);
 
-	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::BRIGHTNESS)).c_str(), this->brightness);
-	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::COLOR_TEMPERATURE)).c_str(), this->getColdBrightness());
-	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::ON_EFFECT)).c_str(), uint8_t(this->onEffect->type));
-	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::OFF_EFFECT)).c_str(), uint8_t(this->offEffect->type));
+	this->config = this->draft;
 
-	this->onEffect->save(this->preferences, ON_EFFECT_PREFERENCE_KEY);
-	this->offEffect->save(this->preferences, OFF_EFFECT_PREFERENCE_KEY);
+	this->preferences.putUInt(String(uint8_t(LEDControllerParameter::COLOR)).c_str(), this->config.color.as_uint32_t());
+	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::ON_EFFECT)).c_str(), uint8_t(this->config.onEffect->type));
+	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::OFF_EFFECT)).c_str(), uint8_t(this->config.offEffect->type));
+
+	this->config.onEffect->save(this->preferences, ON_EFFECT_PREFERENCE_KEY);
+	this->config.offEffect->save(this->preferences, OFF_EFFECT_PREFERENCE_KEY);
 
 	this->preferences.end();
 }
 
-void LEDController::setBrightness(uint8_t brightness) {
-	this->brightness = brightness;
-
-	if (this->mode == LEDControllerMode::SETTING) {
-		this->previewer.previewBrightness(brightness);
-	} else {
-		FastLED.setBrightness(brightness);
-	}
-}
-
-void LEDController::setColdBrightness(uint8_t coldBrightness) {
-	this->onColor.r = coldBrightness;
-	this->onColor.g = 255 - coldBrightness;
-
-	if (this->mode == LEDControllerMode::SETTING) {
-		this->previewer.previewColorTemperature(coldBrightness);
-	}
-}
-
-void LEDController::clearLEDs() {
-	for (uint16_t i = 0; i < LED_ARRAY_COUNT; i++) {
-		this->leds[i] = CRGB::Black;
+void LEDController::setColor(const CRGB &color) {
+	switch (this->mode) {
+	case LEDControllerMode::SETTING:
+		this->draft.color = color;
+		this->previewer.previewColor(color);
+		break;
+	case LEDControllerMode::SWITCH:
+		this->config.color = color;
+		this->previewer.setColor(color);
+		break;
 	}
 }
 
 void LEDController::setOnEffect(Effect *effect) {
-	this->onEffect = effect;
-
-	if (this->mode == LEDControllerMode::SETTING) {
-		this->previewer.previewEffect(effect, EffectDirection::ON);
-	}
+	this->getConfig().onEffect = effect;
 }
 
 void LEDController::setOffEffect(Effect *effect) {
-	this->offEffect = effect;
-
-	if (this->mode == LEDControllerMode::SETTING) {
-		this->previewer.previewEffect(effect, EffectDirection::OFF);
-	}
+	this->getConfig().offEffect = effect;
 }
 
 void LEDController::setOnEffectParameter(EffectParameter parameter, const String &value) {
-	// TODO: How to preview delay?
-	this->onEffect->setParameter(parameter, value);
-	this->previewEffectParameter(parameter, value);
+	this->getConfig().onEffect->setParameter(parameter, value);
+
+	if (this->mode == LEDControllerMode::SETTING) {
+		this->previewEffectParameter(parameter, value);
+	}
 }
 
 void LEDController::setOffEffectParameter(EffectParameter parameter, const String &value) {
-	// TODO: How to preview delay?
-	this->offEffect->setParameter(parameter, value);
-	this->previewEffectParameter(parameter, value);
+	this->getConfig().offEffect->setParameter(parameter, value);
+
+	if (this->mode == LEDControllerMode::SETTING) {
+		this->previewEffectParameter(parameter, value);
+	}
+}
+
+void LEDController::previewOnEffect() {
+	this->previewer.previewEffect(this->draft.onEffect, EffectDirection::ON);
+}
+
+void LEDController::previewOffEffect() {
+	this->previewer.previewEffect(this->draft.offEffect, EffectDirection::OFF);
+}
+
+LEDConfig &LEDController::getConfig() {
+	switch (this->mode) {
+	case LEDControllerMode::SWITCH:
+		return this->config;
+	default:
+		return this->draft;
+	}
 }
 
 void LEDController::previewEffectParameter(EffectParameter parameter, const String &value) {
