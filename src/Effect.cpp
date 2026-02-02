@@ -38,16 +38,16 @@ bool Effect::setParameter(const EffectParameter parameter, const String &value) 
 	return false;
 }
 
-void Effect::load(Preferences &prefs, const char *key) {
-	const auto durationKey = this->getPreferenceKey(EffectParameter::DURATION, key).c_str();
-	const auto durationValue = prefs.getUInt(durationKey, DEFAULT_EFFECT_DURATION);
+void Effect::load(Preferences &preferences, const char *key) {
+	const auto durationKey = this->getPreferenceKey(EffectParameter::DURATION, key);
+	const auto durationValue = preferences.getUInt(durationKey.c_str(), DEFAULT_EFFECT_DURATION);
 	this->setDuration(durationValue);
 }
 
-void Effect::save(Preferences &prefs, const char *key) {
-	const auto durationKey = this->getPreferenceKey(EffectParameter::DURATION, key).c_str();
+void Effect::save(Preferences &preferences, const char *key) {
+	const auto durationKey = this->getPreferenceKey(EffectParameter::DURATION, key);
 	const auto durationValue = this->getDuration();
-	prefs.putUInt(durationKey, durationValue);
+	preferences.putUInt(durationKey.c_str(), durationValue);
 }
 
 String Effect::getPreferenceKey(EffectParameter parameter, const char *key) {
@@ -104,20 +104,20 @@ bool LightsaberEffect::setParameter(const EffectParameter parameter, const Strin
 	return false;
 }
 
-void LightsaberEffect::load(Preferences &prefs, const char *key) {
-	Effect::load(prefs, key);
+void LightsaberEffect::load(Preferences &preferences, const char *key) {
+	Effect::load(preferences, key);
 
-	const auto startLedIndexKey = this->getPreferenceKey(EffectParameter::START_LED_INDEX, key).c_str();
-	const auto startLedIndexValue = prefs.getUShort(startLedIndexKey, 0);
+	const auto startLedIndexKey = this->getPreferenceKey(EffectParameter::START_LED_INDEX, key);
+	const auto startLedIndexValue = preferences.getUShort(startLedIndexKey.c_str(), 0);
 	this->setStartLedIndex(startLedIndexValue);
 }
 
-void LightsaberEffect::save(Preferences &prefs, const char *key) {
-	Effect::save(prefs, key);
+void LightsaberEffect::save(Preferences &preferences, const char *key) {
+	Effect::save(preferences, key);
 
-	const auto startLedIndexKey = this->getPreferenceKey(EffectParameter::START_LED_INDEX, key).c_str();
+	const auto startLedIndexKey = this->getPreferenceKey(EffectParameter::START_LED_INDEX, key);
 	const auto startLedIndexValue = this->getStartLedIndex();
-	prefs.putUShort(startLedIndexKey, startLedIndexValue);
+	preferences.putUShort(startLedIndexKey.c_str(), startLedIndexValue);
 }
 
 uint16_t LightsaberEffect::getLongerSectionLength(uint16_t numLeds) {

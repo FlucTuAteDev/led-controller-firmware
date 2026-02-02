@@ -38,8 +38,8 @@ class Effect {
 	void setDuration(uint32_t duration);
 
 	virtual bool setParameter(const EffectParameter parameter, const String &value);
-	virtual void load(Preferences &prefs, const char *key);
-	virtual void save(Preferences &prefs, const char *key);
+	virtual void load(Preferences &preferences, const char *key);
+	virtual void save(Preferences &preferences, const char *key);
 
 	bool isRunning() const { return this->running; }
 
@@ -64,8 +64,8 @@ class StaticEffect : public Effect {
 
 	// These don't do anything
 	bool setParameter(const EffectParameter parameter, const String &value) {}
-	void load(Preferences &prefs, const char *key) {}
-	void save(Preferences &prefs, const char *key) {}
+	void load(Preferences &preferences, const char *key) {}
+	void save(Preferences &preferences, const char *key) {}
 
   protected:
 	void animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) override;
@@ -80,8 +80,8 @@ class LightsaberEffect : public Effect {
 	void setStartLedIndex(uint16_t startLedIndex);
 
 	bool setParameter(const EffectParameter parameter, const String &value) override;
-	void load(Preferences &prefs, const char *key) override;
-	void save(Preferences &prefs, const char *key) override;
+	void load(Preferences &preferences, const char *key) override;
+	void save(Preferences &preferences, const char *key) override;
 
   protected:
 	void animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) override;

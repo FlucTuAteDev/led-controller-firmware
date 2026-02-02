@@ -112,6 +112,8 @@ void LEDController::onSwitchModeEntered() {
 #define SETTING_MODE_BLINK_DELAY 300
 
 void LEDController::onSettingModeEntered() {
+	this->draft = this->config;
+
 	// In setting mode the power supply is always on
 	this->powerSupply.on();
 
@@ -129,11 +131,14 @@ void LEDController::onSettingModeEntered() {
 void LEDController::load() {
 	this->preferences.begin(LED_PREFERENCES_NAMESPACE, true);
 
-	CRGB color = this->preferences.getUInt(String(uint8_t(LEDControllerParameter::COLOR)).c_str(), DEFAULT_COLOR);
+	const auto colorKey = String(uint8_t(LEDControllerParameter::COLOR));
+	CRGB color = this->preferences.getUInt(colorKey.c_str(), DEFAULT_COLOR);
 	this->setColor(color);
 
-	const auto onEffectType = (EffectType)this->preferences.getUChar(String(uint8_t(LEDControllerParameter::ON_EFFECT)).c_str(), uint8_t(EffectType::LIGHTSABER));
-	const auto offEffectType = (EffectType)this->preferences.getUChar(String(uint8_t(LEDControllerParameter::OFF_EFFECT)).c_str(), uint8_t(EffectType::LIGHTSABER));
+	const auto onEffectKey = String(uint8_t(LEDControllerParameter::ON_EFFECT));
+	const auto onEffectType = (EffectType)this->preferences.getUChar(onEffectKey.c_str(), uint8_t(EffectType::LIGHTSABER));
+	const auto offEffectKey = String(uint8_t(LEDControllerParameter::OFF_EFFECT));
+	const auto offEffectType = (EffectType)this->preferences.getUChar(offEffectKey.c_str(), uint8_t(EffectType::LIGHTSABER));
 
 	Effect *onEffect = EffectFactory::getFromEffectTypeOn(onEffectType);
 	Effect *offEffect = EffectFactory::getFromEffectTypeOff(offEffectType);
@@ -152,9 +157,18 @@ void LEDController::save() {
 
 	this->config = this->draft;
 
-	this->preferences.putUInt(String(uint8_t(LEDControllerParameter::COLOR)).c_str(), this->config.color.as_uint32_t());
-	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::ON_EFFECT)).c_str(), uint8_t(this->config.onEffect->type));
-	this->preferences.putUChar(String(uint8_t(LEDControllerParameter::OFF_EFFECT)).c_str(), uint8_t(this->config.offEffect->type));
+	const auto colorKey = String(uint8_t(LEDControllerParameter::COLOR));
+	const auto colorValue = this->config.color.as_uint32_t();
+
+	const auto onEffectKey = String(uint8_t(LEDControllerParameter::ON_EFFECT));
+	const auto onEffectTypeValue = uint8_t(this->config.onEffect->type);
+
+	const auto offEffectKey = String(uint8_t(LEDControllerParameter::OFF_EFFECT));
+	const auto offEffectTypeValue = uint8_t(this->config.offEffect->type);
+
+	this->preferences.putUInt(colorKey.c_str(), colorValue);
+	this->preferences.putUChar(onEffectKey.c_str(), onEffectTypeValue);
+	this->preferences.putUChar(offEffectKey.c_str(), offEffectTypeValue);
 
 	this->config.onEffect->save(this->preferences, ON_EFFECT_PREFERENCE_KEY);
 	this->config.offEffect->save(this->preferences, OFF_EFFECT_PREFERENCE_KEY);
@@ -211,7 +225,7 @@ LEDConfig &LEDController::getConfig() {
 	switch (this->mode) {
 	case LEDControllerMode::SWITCH:
 		return this->config;
-	default:
+	case LEDControllerMode::SETTING:
 		return this->draft;
 	}
 }

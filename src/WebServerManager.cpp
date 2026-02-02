@@ -39,7 +39,7 @@ String WebServerManager::getState() const {
 
 	sprintf(
 		buf,
-		"%d %d %d %d %d %d %d %d",
+		"%u %d %d %d %d %d %d",
 		color,
 		onEffect->type,
 		onEffect->getDuration(),
