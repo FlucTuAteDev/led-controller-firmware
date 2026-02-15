@@ -5,10 +5,8 @@ void LEDController::begin() {
 	this->switchInput.begin(INPUT_PULLUP);
 	this->powerSupply.begin();
 
-	FastLED.addLeds<WS2811, SHORT_STRIP_DATA_PIN>(this->leds, LED_ARRAY_COUNT);
-	// FIXME: Use this after cutting leds
-	// FastLED.addLeds<WS2811, SHORT_STRIP_DATA_PIN>(this->leds, SHORT_STRIP_SECTION_COUNT);
-	// FastLED.addLeds<WS2811, LONG_STRIP_DATA_PIN>(this->leds, SHORT_STRIP_SECTION_COUNT + STRIP_GAP_SECTION_COUNT, LONG_STRIP_SECTION_COUNT);
+	FastLED.addLeds<WS2811, SHORT_STRIP_DATA_PIN>(this->leds, SHORT_STRIP_SECTION_COUNT);
+	FastLED.addLeds<WS2811, LONG_STRIP_DATA_PIN>(this->leds, SHORT_STRIP_SECTION_COUNT + STRIP_GAP_SECTION_COUNT, LONG_STRIP_SECTION_COUNT);
 
 	FastLED.setMaxRefreshRate(MAX_REFRESH_RATE);
 	FastLED.setDither(DISABLE_DITHER);
@@ -38,7 +36,7 @@ void LEDController::updateSwitchMode() {
 
 		// Wait for power supply to turn on
 		if (this->switchInput.isOn() && !powerSupplyWasOn) {
-			delay(100);
+			delay(300);
 		}
 
 		if (this->switchInput.isOn()) {
@@ -61,7 +59,7 @@ void LEDController::updateSwitchMode() {
 	auto updated = this->currentEffect->update(this->leds, LED_ARRAY_COUNT, this->config.color);
 
 	if (updated) {
-		FastLED.show();
+		this->showLeds();
 	}
 }
 
@@ -69,7 +67,7 @@ void LEDController::updateSettingMode() {
 	const auto updated = this->previewer.update(this->leds, LED_ARRAY_COUNT);
 
 	if (updated) {
-		FastLED.show();
+		this->showLeds();
 	}
 }
 
@@ -120,11 +118,13 @@ void LEDController::onSettingModeEntered() {
 	// Blink the first led to signal entering into setting modeí
 	for (size_t i = 0; i < 2; i++) {
 		this->leds[0] = this->config.color;
-		FastLED.show();
+		this->showLeds();
 		delay(SETTING_MODE_BLINK_DELAY);
+		this->reverseShortStripSection();
 		this->leds[0] = CRGB::Black;
-		FastLED.show();
+		this->showLeds();
 		delay(SETTING_MODE_BLINK_DELAY);
+		this->reverseShortStripSection();
 	}
 }
 
@@ -248,4 +248,9 @@ void LEDController::reverseShortStripSection() {
 		this->leds[i] = this->leds[SHORT_STRIP_SECTION_COUNT - i - 1];
 		this->leds[SHORT_STRIP_SECTION_COUNT - i - 1] = tmp;
 	}
+}
+
+void LEDController::showLeds() {
+	this->reverseShortStripSection();
+	FastLED.show();
 }

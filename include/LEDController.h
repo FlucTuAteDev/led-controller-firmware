@@ -9,8 +9,8 @@
 #include <FastLED.h>
 #include <optional>
 
-#define LONG_STRIP_DATA_PIN 32
-#define SHORT_STRIP_DATA_PIN 26
+#define LONG_STRIP_DATA_PIN 26
+#define SHORT_STRIP_DATA_PIN 14
 
 #define POWER_SUPPLY_PIN 18
 
@@ -84,6 +84,8 @@ class LEDController {
 
 	void onSwitchModeEntered();
 	void onSettingModeEntered();
+
+	void showLeds();
 
 	CRGB leds[LED_ARRAY_COUNT];
 
