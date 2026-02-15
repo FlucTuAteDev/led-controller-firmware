@@ -15,4 +15,6 @@ class WebServerManager {
 	AsyncWebServer server;
 	WebSocketHandler wsHandler;
 	LEDController &ledController;
+
+	bool serverStarted = false;
 };

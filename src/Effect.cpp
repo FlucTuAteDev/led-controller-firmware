@@ -125,7 +125,7 @@ uint16_t LightsaberEffect::getLongerSectionLength(uint16_t numLeds) {
 		return this->startLedIndex + 1;
 	}
 
-	return numLeds - this->startLedIndex - 1;
+	return numLeds - this->startLedIndex;
 }
 
 void LightsaberEffect::animate(CRGB *leds, uint16_t numLeds, const CRGB &onColor, float progress) {

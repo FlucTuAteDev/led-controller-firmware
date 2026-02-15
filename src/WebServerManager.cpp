@@ -7,6 +7,8 @@ WebServerManager::WebServerManager(LEDController &ledController)
 }
 
 void WebServerManager::begin() {
+	if (this->serverStarted) return;
+
 	LittleFS.begin();
 
 	this->server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
@@ -22,6 +24,7 @@ void WebServerManager::begin() {
 	ElegantOTA.begin(&this->server);
 
 	this->server.begin();
+	this->serverStarted = true;
 }
 
 void WebServerManager::loop() {
